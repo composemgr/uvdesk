@@ -36,4 +36,4 @@ services:
       MYSQL_PASSWORD: ${DB_USER_PASS:-changeme_db_password}
       MYSQL_ROOT_PASSWORD: ${DB_ADMIN_PASS:-changeme_admin_password}
     volumes:
-      - './rootfs/db/mysql:/var/lib/mysql'
+      - './rootfs/data/db/mysql:/var/lib/mysql'
