@@ -18,6 +18,8 @@ services:
     logging: *default-logging
     environment:
       TZ: ${TZ:-America/New_York}
+      CONTAINER_NAME: uvdesk-app
+      HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
       MYSQL_HOST: uvdesk-db
       MYSQL_USER: ${DB_USER_NAME:-uvdesk}
       MYSQL_PASSWORD: ${DB_USER_PASS:-changeme_db_password}
@@ -34,6 +36,24 @@ services:
         condition: service_healthy
     networks:
       - uvdesk
+      - proxy
+      - cloudflare
+    labels:
+      - 'traefik.enable=true'
+      - 'cloudflare.enable=true'
+      - 'traefik.docker.network=proxy'
+      - 'cloudflare.service=http://uvdesk-app:80'
+      - 'cloudflare.hostname=uvdesk.${CLOUDFLARE_ZONE_NAME:-}'
+      - 'traefik.http.routers.uvdesk-app.entrypoints=http'
+      - 'traefik.http.routers.uvdesk-app-secure.tls=true'
+      - 'traefik.http.routers.uvdesk-app.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
+      - 'traefik.http.middlewares.uvdesk-app-https-redirect.redirectscheme.scheme=https'
+      - 'traefik.http.routers.uvdesk-app.middlewares=uvdesk-app-https-redirect'
+      - 'traefik.http.routers.uvdesk-app-secure.entrypoints=https'
+      - 'traefik.http.routers.uvdesk-app-secure.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
+      - 'traefik.http.routers.uvdesk-app-secure.tls.certresolver=cloudflare'
+      - 'traefik.http.routers.uvdesk-app-secure.service=uvdesk-app'
+      - 'traefik.http.services.uvdesk-app.loadbalancer.server.port=80'
 
   uvdesk-db:
     image: mariadb:latest
@@ -44,6 +64,7 @@ services:
     logging: *default-logging
     environment:
       TZ: ${TZ:-America/New_York}
+      CONTAINER_NAME: uvdesk-db
       MARIADB_USER: ${DB_USER_NAME:-uvdesk}
       MARIADB_DATABASE: ${DB_CREATE_DATABASE_NAME:-uvdesk}
       MARIADB_PASSWORD: ${DB_USER_PASS:-changeme_db_password}
@@ -62,3 +83,7 @@ networks:
   uvdesk:
     name: uvdesk
     external: false
+  proxy:
+    external: true
+  cloudflare:
+    external: true
