@@ -1,18 +1,20 @@
 ## 👋 Welcome to uvdesk 🚀
 
-Open-source helpdesk and support ticket system
+UVdesk - open source help desk
 
 ## 📋 Description
 
-Open-source helpdesk and support ticket system
+UVdesk - open source help desk
 
 ## 🚀 Services
 
-- **app**: nuttcorp/uvdesk:latest
+- **app**: UVdesk - open source help desk
+- **uvdesk-db**: MariaDB database
+
 
 ### Infrastructure Components
 
-- **db**: Mysql database
+- **MariaDB**
 
 
 ## 📦 Installation
@@ -26,7 +28,8 @@ curl -q -LSsf "https://raw.githubusercontent.com/composemgr/uvdesk/main/docker-c
 ```bash
 git clone "https://github.com/composemgr/uvdesk" ~/.local/srv/docker/uvdesk
 cd ~/.local/srv/docker/uvdesk
-docker compose up -d
+cp default.env .env
+docker compose --env-file .env up -d
 ```
 
 ### Option 3: Using composemgr
@@ -40,52 +43,86 @@ composemgr install uvdesk
 
 ```shell
 TZ=America/New_York
+BASE_HOST_NAME=uvdesk.example.com
 DB_USER_NAME=uvdesk
-DB_USER_PASS=changeme_db_password
-DB_ADMIN_PASS=changeme_admin_password
+DB_USER_PASS=replace-with-a-random-password
+DB_ADMIN_PASS=replace-with-a-random-password
+APP_ADMIN_USER=admin
+APP_ADMIN_PASS=replace-with-a-random-password
 ```
 
 See `docker-compose.yaml` for complete list of configurable options.
 
+### Environment Files
+
+`default.env.sample` holds the full set of variables and is copied to `.env`
+before starting the stack:
+
+```bash
+cp default.env .env
+docker compose --env-file .env up -d
+```
+
+`app.env.sample` holds the app-specific overrides and is copied to `app.env`:
+
+```bash
+cp app.env.sample app.env
+```
+
+`composemgr up` applies `app.env` and `default.env` automatically. Raw
+`docker compose` commands need `--env-file .env` to pick up the same values.
+
+### Reverse Proxy
+
+Three standalone compose files ship in this repo:
+
+| File | Use |
+|------|-----|
+| `docker-compose.yaml` | Default, published on `172.17.0.1:64380` |
+| `docker-compose.traefik.yaml` | Behind an existing external `traefik` network |
+| `docker-compose.tunnel.yaml` | Behind an existing external `cloudflare` tunnel network |
+
+```bash
+docker compose -f docker-compose.traefik.yaml --env-file .env up -d
+```
+
 ## 🌐 Access
 
-- **Web Interface**: http://172.17.0.1:59338
+- **Web Interface**: http://172.17.0.1:64380
 
 ## 📂 Volumes
 
-- `./volumes/data/db/mysql` - Data storage
+- `./volumes/data/uvdesk` - Application data
+- `./volumes/db/mariadb/uvdesk` - Database data
 
 ## 🔐 Security
 
-- Change all default passwords before deploying to production
-- Use strong secrets for all authentication tokens
-- Configure HTTPS using a reverse proxy (nginx, traefik, caddy)
-- Regularly update Docker images for security patches
-- Backup your data regularly
+- Change all default passwords before deploying
+- Back up the MariaDB volume regularly
 
 ## 🔍 Logging
 
 ```shell
-docker compose logs -f app
+docker compose --env-file .env logs -f app
 ```
 
 ## 🛠️ Management
 
 ```bash
 # Start services
-docker compose up -d
+docker compose --env-file .env up -d
 
 # Stop services
-docker compose down
+docker compose --env-file .env down
 
 # Update to latest images
-docker compose pull && docker compose up -d
+docker compose --env-file .env pull && docker compose --env-file .env up -d
 
 # View logs
-docker compose logs -f
+docker compose --env-file .env logs -f
 
 # Restart services
-docker compose restart
+docker compose --env-file .env restart
 ```
 
 ## 📋 Requirements
@@ -95,5 +132,5 @@ docker compose restart
 
 ## 🤝 Author
 
-🤖 casjay: [Github](https://github.com/casjay) 🤖  
+🤖 casjay: [Github](https://github.com/casjay) 🤖
 🦄 composemgr: [Github](https://github.com/composemgr) 🦄

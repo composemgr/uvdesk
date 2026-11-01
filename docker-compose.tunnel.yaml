@@ -1,0 +1,70 @@
+name: uvdesk
+x-logging: &default-logging
+  options:
+    max-size: '5m'
+    max-file: '1'
+  driver: json-file
+
+services:
+  app:
+    image: nuttcorp/uvdesk:latest
+    container_name: uvdesk-app
+    hostname: ${BASE_HOST_NAME:-$HOSTNAME}
+    restart: always
+    pull_policy: always
+    tty: true
+    logging: *default-logging
+    environment:
+      TZ: ${TZ:-America/New_York}
+      CONTAINER_NAME: uvdesk-app
+      HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
+      MYSQL_HOST: uvdesk-db
+      MYSQL_USER: ${DB_USER_NAME:-uvdesk}
+      MYSQL_PASSWORD: ${DB_USER_PASS:-replace-with-a-random-password}
+      MYSQL_ROOT_PASSWORD: ${DB_ADMIN_PASS:-replace-with-a-random-password}
+      MYSQL_DATABASE: ${DB_CREATE_DATABASE_NAME:-uvdesk}
+      APP_ADMIN_USER: ${APP_ADMIN_USER:-admin}
+      APP_ADMIN_PASS: ${APP_ADMIN_PASS:-replace-with-a-random-password}
+    volumes:
+      - './volumes/data/uvdesk:/var/www/html/uvdesk:z'
+    depends_on:
+      uvdesk-db:
+        condition: service_healthy
+    labels:
+      - 'cloudflare.enable=true'
+      - 'cloudflare.service=http://uvdesk-app:80'
+      - 'cloudflare.hostname=${BASE_HOST_NAME:-$HOSTNAME}'
+    networks:
+      - uvdesk
+      - cloudflare
+
+  uvdesk-db:
+    image: mariadb:latest
+    container_name: uvdesk-db
+    hostname: uvdesk-db
+    restart: always
+    pull_policy: always
+    logging: *default-logging
+    environment:
+      TZ: ${TZ:-America/New_York}
+      CONTAINER_NAME: uvdesk-db
+      MARIADB_USER: ${DB_USER_NAME:-uvdesk}
+      MARIADB_DATABASE: ${DB_CREATE_DATABASE_NAME:-uvdesk}
+      MARIADB_PASSWORD: ${DB_USER_PASS:-replace-with-a-random-password}
+      MARIADB_ROOT_PASSWORD: ${DB_ADMIN_PASS:-replace-with-a-random-password}
+    volumes:
+      - './volumes/db/mariadb/uvdesk:/var/lib/mysql:z'
+    healthcheck:
+      test: ['CMD', 'healthcheck.sh', '--connect', '--innodb_initialized']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - uvdesk
+
+networks:
+  uvdesk:
+    name: uvdesk
+    external: false
+  cloudflare:
+    external: true
